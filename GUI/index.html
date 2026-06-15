@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IR Textile Classifier</title>
+  <style>
+    /* ── Reset & base ───────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --red:        #C8102E;
+      --red-dark:   #960B22;
+      --red-light:  #FCEEF0;
+      --red-mid:    #F4C0C8;
+      --white:      #FFFFFF;
+      --off-white:  #F8F8F8;
+      --border:     #EBEBEB;
+      --border-strong: #D8D8D8;
+      --text:       #111111;
+      --text-mid:   #555555;
+      --text-muted: #999999;
+      --green:      #1A7A4A;
+      --green-bg:   #EDFAF3;
+      --radius-sm:  6px;
+      --radius-md:  10px;
+      --radius-lg:  16px;
+    }
+
+    body {
+      font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+      background: var(--off-white);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Top nav ────────────────────────────────────────────── */
+    header {
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 0 40px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    /* ── LOGO SLOT ──────────────────────────────────────────────────────────────
+       Replace the <img> tag src below with your logo file path, e.g. "logo.png"
+       Place your logo file in the same folder as index.html.
+       The img tag is already there — just swap the src.
+    ─────────────────────────────────────────────────────────────────────────── */
+    .logo-img {
+      height: 36px;
+      width: auto;
+      display: block;
+    }
+
+    /* Fallback wordmark shown when no logo image is provided */
+    .logo-fallback {
+      height: 36px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-fallback .logo-mark {
+      width: 36px;
+      height: 36px;
+      background: var(--red);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .logo-fallback .logo-mark svg { width: 20px; height: 20px; }
+    .logo-fallback .logo-name {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      color: var(--text);
+    }
+    .logo-fallback .logo-name span { color: var(--red); }
+
+    .header-badge {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--red);
+      background: var(--red-light);
+      border: 1px solid var(--red-mid);
+      padding: 3px 10px;
+      border-radius: 99px;
+      letter-spacing: 0.03em;
+    }
+
+    /* ── Page layout ────────────────────────────────────────── */
+    main {
+      flex: 1;
+      max-width: 780px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 40px 24px 60px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .page-title {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+    .page-sub {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+
+    /* ── Cards ──────────────────────────────────────────────── */
+    .card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px 28px;
+    }
+
+    .card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    /* ── Drop zone ──────────────────────────────────────────── */
+    .drop-zone {
+      border: 2px dashed var(--border-strong);
+      border-radius: var(--radius-md);
+      padding: 36px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      position: relative;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--red);
+      background: var(--red-light);
+    }
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .drop-icon {
+      width: 44px;
+      height: 44px;
+      background: var(--red-light);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 14px;
+    }
+    .drop-icon svg { width: 22px; height: 22px; stroke: var(--red); }
+    .drop-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .drop-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .drop-sub strong { color: var(--red); font-weight: 600; }
+
+    .file-selected {
+      display: none;
+      align-items: center;
+      gap: 14px;
+      background: var(--red-light);
+      border: 1px solid var(--red-mid);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      margin-top: 12px;
+    }
+    .file-selected.visible { display: flex; }
+    .file-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--white);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--red-mid);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .file-icon svg { width: 18px; height: 18px; stroke: var(--red); }
+    .file-info { flex: 1; min-width: 0; }
+    .file-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .file-size {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .file-remove {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      padding: 4px;
+      border-radius: 4px;
+      display: flex;
+      transition: color 0.15s;
+    }
+    .file-remove:hover { color: var(--red); }
+    .file-remove svg { width: 16px; height: 16px; stroke: currentColor; }
+
+    /* ── Model selector ─────────────────────────────────────── */
+    .model-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .model-option {
+      position: relative;
+      cursor: pointer;
+    }
+    .model-option input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .model-tile {
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+      transition: border-color 0.15s, background 0.15s;
+      user-select: none;
+    }
+    .model-option input:checked + .model-tile {
+      border-color: var(--red);
+      background: var(--red-light);
+    }
+    .model-tile-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .model-tile-icon {
+      width: 30px;
+      height: 30px;
+      background: var(--red-light);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .model-option input:checked ~ .model-tile .model-tile-icon {
+      background: var(--red);
+    }
+    .model-tile-icon svg { width: 16px; height: 16px; stroke: var(--red); }
+    .model-option input:checked ~ .model-tile .model-tile-icon svg { stroke: white; }
+    .model-radio-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border-strong);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .model-option input:checked ~ .model-tile .model-radio-dot {
+      border-color: var(--red);
+      background: var(--red);
+    }
+    .model-option input:checked ~ .model-tile .model-radio-dot::after {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: white;
+    }
+    .model-tile-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .model-tile-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* ── Run button ─────────────────────────────────────────── */
+    .run-row {
+      display: flex;
+      gap: 10px;
+    }
+    .btn-run {
+      flex: 1;
+      height: 48px;
+      background: var(--red);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn-run:hover:not(:disabled) { background: var(--red-dark); }
+    .btn-run:active:not(:disabled) { transform: scale(0.98); }
+    .btn-run:disabled { background: #ccc; cursor: not-allowed; }
+    .btn-run svg { width: 18px; height: 18px; stroke: white; }
+
+    .btn-reset {
+      height: 48px;
+      width: 48px;
+      background: var(--white);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+    .btn-reset:hover { background: var(--off-white); }
+    .btn-reset svg { width: 17px; height: 17px; stroke: var(--text-mid); }
+
+    /* ── Progress ───────────────────────────────────────────── */
+    .progress-wrap {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 20px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+    }
+    .progress-wrap.visible { display: flex; }
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--red-mid);
+      border-top-color: var(--red);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .progress-text { font-size: 13px; color: var(--text-mid); }
+
+    /* ── Results card ───────────────────────────────────────── */
+    #result-card { display: none; }
+    #result-card.visible { display: block; }
+
+    .result-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .result-prediction {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+    }
+
+    .conf-pill {
+      background: var(--green-bg);
+      color: var(--green);
+      border-radius: 99px;
+      padding: 5px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .result-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .result-meta strong { color: var(--text-mid); }
+
+    .top2-block {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .top2-pill {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .top2-pill.first  { background: var(--green-bg); color: var(--green); }
+    .top2-pill.second { background: var(--off-white); color: var(--text-mid); border: 1px solid var(--border); }
+    .top2-pill .pill-label { font-weight: 600; }
+    .top2-pill .pill-pct   { font-weight: 800; margin-left: 8px; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 20px 0;
+    }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+
+    /* ── Logit bars ─────────────────────────────────────────── */
+    .logit-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .logit-row {
+      display: grid;
+      grid-template-columns: 140px 1fr 60px 70px;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logit-name {
+      font-size: 13px;
+      color: var(--text);
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .logit-row.top-result .logit-name {
+      font-weight: 700;
+      color: var(--red-dark);
+    }
+
+    .bar-track {
+      height: 8px;
+      background: var(--off-white);
+      border-radius: 99px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: var(--border-strong);
+      transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .logit-row.top-result .bar-fill { background: var(--red); }
+
+    .logit-pct {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-mid);
+      text-align: right;
+    }
+    .logit-row.top-result .logit-pct { color: var(--red); }
+
+    .logit-raw {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-family: 'Courier New', monospace;
+    }
+
+    /* ── Export row ─────────────────────────────────────────── */
+    .export-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 20px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+    }
+    .model-tag {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .model-tag-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+    .btn-export {
+      height: 34px;
+      padding: 0 14px;
+      background: var(--white);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-mid);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s;
+    }
+    .btn-export:hover { background: var(--off-white); }
+    .btn-export svg { width: 14px; height: 14px; stroke: currentColor; }
+
+    /* ── Error state ────────────────────────────────────────── */
+    .error-box {
+      display: none;
+      background: #FFF5F5;
+      border: 1px solid #FECDD3;
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      font-size: 13px;
+      color: #9B1C1C;
+    }
+    .error-box.visible { display: block; }
+    .error-box strong { font-weight: 700; display: block; margin-bottom: 4px; }
+
+    /* ── Footer ─────────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 11px;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     HEADER / LOGO
+═══════════════════════════════════════════════════════════════ -->
+<header>
+  <div class="logo-area">
+
+    <!-- ┌─────────────────────────────────────────────────────────┐
+         │  LOGO: swap this <img> src for your own logo file.     │
+         │  Place logo.png next to index.html and change the src. │
+         │  To hide the fallback wordmark, remove .logo-fallback.  │
+         └─────────────────────────────────────────────────────────┘ -->
+
+    <!-- Option A: image logo (set src="your_logo.png") -->
+    <!-- <img class="logo-img" src="logo.png" alt="Company logo" /> -->
+
+    <!-- Option B: built-in wordmark (shown by default, delete if using image) -->
+    <div class="logo-fallback">
+      <div class="logo-mark">
+        <svg viewBox="0 0 20 20" fill="none" stroke="white" stroke-width="1.6">
+          <path d="M3 16 Q6 4 10 10 Q14 16 17 4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <span class="logo-name">Textile<span>Sorter</span></span>
+    </div>
+
+  </div>
+  <span class="header-badge">Local · v1.0</span>
+</header>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     MAIN
+═══════════════════════════════════════════════════════════════ -->
+<main>
+
+  <div>
+    <h1 class="page-title">IR Spectrum Classifier</h1>
+    <p class="page-sub">Upload a spectrum CSV, select a model, and run classification to identify textile composition.</p>
+  </div>
+
+  <!-- File upload -->
+  <div class="card">
+    <p class="card-label">Spectrum file</p>
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" accept=".csv" />
+      <div class="drop-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+      </div>
+      <p class="drop-title">Drop your CSV here</p>
+      <p class="drop-sub">or <strong>browse to select</strong> a file from your computer</p>
+    </div>
+    <div class="file-selected" id="fileSelected">
+      <div class="file-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+      </div>
+      <div class="file-info">
+        <p class="file-name" id="fileName">—</p>
+        <p class="file-size" id="fileSize">—</p>
+      </div>
+      <button class="file-remove" id="removeFile" title="Remove file">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Model selector -->
+  <div class="card">
+    <p class="card-label">Classification model</p>
+    <div class="model-grid">
+      <label class="model-option">
+        <input type="radio" name="model" value="pure" checked />
+        <div class="model-tile">
+          <div class="model-tile-top">
+            <div class="model-tile-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="8"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+              </svg>
+            </div>
+            <div class="model-radio-dot"></div>
+          </div>
+          <p class="model-tile-name">Pure textile</p>
+          <p class="model-tile-desc">Single-fibre composition — cotton, wool, polyester, etc.</p>
+        </div>
+      </label>
+      <label class="model-option">
+        <input type="radio" name="model" value="mixed" />
+        <div class="model-tile">
+          <div class="model-tile-top">
+            <div class="model-tile-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+              </svg>
+            </div>
+            <div class="model-radio-dot"></div>
+          </div>
+          <p class="model-tile-name">Mixed textile</p>
+          <p class="model-tile-desc">Blended fibre compositions and multi-material fabrics.</p>
+        </div>
+      </label>
+    </div>
+  </div>
+
+  <!-- Run / Reset -->
+  <div class="run-row">
+    <button class="btn-run" id="runBtn" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="5 3 19 12 5 21 5 3"/>
+      </svg>
+      Run classification
+    </button>
+    <button class="btn-reset" id="resetBtn" title="Reset">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="1 4 1 10 7 10"/>
+        <path d="M3.51 15a9 9 0 1 0 .49-3.47"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap" id="progressWrap">
+    <div class="spinner"></div>
+    <span class="progress-text" id="progressText">Running classification…</span>
+  </div>
+
+  <!-- Error -->
+  <div class="error-box" id="errorBox">
+    <strong>Classification failed</strong>
+    <span id="errorMsg"></span>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       RESULTS — populated by JavaScript after inference
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="card" id="result-card">
+
+    <div class="result-top">
+      <div>
+        <p class="result-prediction" id="resultPrediction">—</p>
+        <p class="result-meta" id="resultMeta">—</p>
+      </div>
+      <span class="conf-pill" id="resultConf">—</span>
+      <div class="top2-block" id="top2Block" style="display:none">
+        <div class="top2-pill first">
+          <span class="pill-label" id="top2Label1">—</span>
+          <span class="pill-pct"  id="top2Pct1">—</span>
+        </div>
+        <div class="top2-pill second">
+          <span class="pill-label" id="top2Label2">—</span>
+          <span class="pill-pct"  id="top2Pct2">—</span>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider" />
+
+    <p class="section-label">Class probabilities &amp; raw logits</p>
+
+    <!-- ┌─────────────────────────────────────────────────────────┐
+         │  RESULTS OUTPUT — rendered by renderResults() below.   │
+         │  Each row = one class, sorted by probability.          │
+         │  To use results elsewhere, see the JS section below.   │
+         └─────────────────────────────────────────────────────────┘ -->
+    <div class="logit-list" id="logitList"></div>
+
+    <div class="export-row">
+      <span class="model-tag">
+        <span class="model-tag-dot"></span>
+        <span id="modelTag">—</span>
+      </span>
+      <button class="btn-export" id="exportBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Export JSON
+      </button>
+    </div>
+
+  </div>
+
+</main>
+
+<footer>IR Textile Classifier · running locally on localhost:5000</footer>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════════════════════ -->
+<script>
+/* ── State ──────────────────────────────────────────────────── */
+let selectedFile  = null;
+let lastResult    = null;
+
+/* ── Elements ───────────────────────────────────────────────── */
+const dropZone     = document.getElementById('dropZone');
+const fileInput    = document.getElementById('fileInput');
+const fileSelected = document.getElementById('fileSelected');
+const fileName     = document.getElementById('fileName');
+const fileSize     = document.getElementById('fileSize');
+const removeFile   = document.getElementById('removeFile');
+const runBtn       = document.getElementById('runBtn');
+const resetBtn     = document.getElementById('resetBtn');
+const progressWrap = document.getElementById('progressWrap');
+const progressText = document.getElementById('progressText');
+const errorBox     = document.getElementById('errorBox');
+const errorMsg     = document.getElementById('errorMsg');
+const resultCard   = document.getElementById('result-card');
+const logitList    = document.getElementById('logitList');
+const exportBtn    = document.getElementById('exportBtn');
+
+/* ── File handling ──────────────────────────────────────────── */
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) setFile(e.target.files[0]);
+});
+
+dropZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropZone.classList.add('drag-over');
+});
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.name.endsWith('.csv')) setFile(f);
+});
+
+function setFile(f) {
+  selectedFile = f;
+  fileName.textContent = f.name;
+  fileSize.textContent = formatBytes(f.size);
+  fileSelected.classList.add('visible');
+  runBtn.disabled = false;
+  hideError();
+}
+
+removeFile.addEventListener('click', resetAll);
+
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+  return (b / 1048576).toFixed(2) + ' MB';
+}
+
+/* ── Run classification ─────────────────────────────────────── */
+runBtn.addEventListener('click', runClassification);
+
+async function runClassification() {
+  if (!selectedFile) return;
+
+  const modelType = document.querySelector('input[name="model"]:checked').value;
+
+  /* Show progress */
+  runBtn.disabled = true;
+  progressWrap.classList.add('visible');
+  progressText.textContent = `Running ${modelType} textile model…`;
+  resultCard.classList.remove('visible');
+  hideError();
+
+  /* ── Build form data to send to the Python backend ──────────
+     The backend (server.py) receives:
+       - "file"  : the raw CSV file
+       - "model" : "pure" or "mixed"
+     It must return JSON (see renderResults for expected shape).
+  ─────────────────────────────────────────────────────────── */
+  const form = new FormData();
+  form.append('file',  selectedFile);
+  form.append('model', modelType);
+
+  try {
+    const resp = await fetch('http://localhost:5000/classify', {
+      method: 'POST',
+      body:   form,
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: `HTTP ${resp.status}` }));
+      throw new Error(err.error || `Server error ${resp.status}`);
+    }
+
+    const data = await resp.json();
+
+    /* ── data shape expected from server.py: ─────────────────
+       {
+         "prediction": "Cotton",          // top class label (string)
+         "confidence": 0.962,             // softmax probability 0–1 (float)
+         "model":      "pure",            // which model was used
+         "classes": ["Cotton","Wool",...],// all class labels (array of strings)
+         "probs":   [0.962, 0.021,...],   // softmax probabilities (array of floats)
+         "logits":  [3.14, -0.5,...],     // raw logit values     (array of floats)
+       }
+    ─────────────────────────────────────────────────────────── */
+
+    lastResult = data;
+    renderResults(data);
+
+  } catch (err) {
+    showError(err.message);
+  } finally {
+    progressWrap.classList.remove('visible');
+    runBtn.disabled = false;
+  }
+}
+
+/* ── Render results ─────────────────────────────────────────── */
+function renderResults(data) {
+  const isMixed = data.model === 'mixed';
+
+  /* ── Prediction label ── */
+  if (isMixed && data.top2) {
+    document.getElementById('resultPrediction').textContent =
+      `${data.top2[0].label} / ${data.top2[1].label}`;
+  } else {
+    document.getElementById('resultPrediction').textContent = data.prediction;
+  }
+
+  /* ── Meta line ── */
+  const topLogit = data.logits[data.classes.indexOf(data.prediction)];
+  document.getElementById('resultMeta').innerHTML =
+    `<strong>${data.classes.length} classes evaluated</strong> &nbsp;·&nbsp; ` +
+    `top logit: <strong>${topLogit.toFixed(4)}</strong> &nbsp;·&nbsp; ` +
+    `model: <strong>${data.model}</strong>`;
+
+  document.getElementById('modelTag').textContent =
+    `${isMixed ? 'Mixed textile' : 'Pure textile'} model · ready`;
+
+  /* ── Confidence pills ── */
+  const singlePill = document.getElementById('resultConf');
+  const top2Block  = document.getElementById('top2Block');
+
+  if (isMixed && data.top2) {
+    singlePill.style.display = 'none';
+    top2Block.style.display  = 'flex';
+    document.getElementById('top2Label1').textContent = data.top2[0].label;
+    document.getElementById('top2Pct1').textContent   = (data.top2[0].prob * 100).toFixed(1) + '%';
+    document.getElementById('top2Label2').textContent = data.top2[1].label;
+    document.getElementById('top2Pct2').textContent   = (data.top2[1].prob * 100).toFixed(1) + '%';
+  } else {
+    top2Block.style.display  = 'none';
+    singlePill.style.display = 'inline-block';
+    singlePill.textContent   = (data.confidence * 100).toFixed(1) + '% confidence';
+  }
+
+  /* ── Logit bars — sorted by probability descending ── */
+  /* Mixed model: highlight top 2; pure model: highlight top 1 */
+  const pairs = data.classes
+    .map((cls, i) => ({ cls, prob: data.probs[i], logit: data.logits[i] }))
+    .sort((a, b) => b.prob - a.prob);
+
+  logitList.innerHTML = '';
+  pairs.forEach((item, idx) => {
+    const isTop = isMixed ? idx < 2 : idx === 0;
+    const row = document.createElement('div');
+    row.className = 'logit-row' + (isTop ? ' top-result' : '');
+    row.innerHTML = `
+      <span class="logit-name">${item.cls}</span>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 0%" data-pct="${(item.prob * 100).toFixed(2)}"></div>
+      </div>
+      <span class="logit-pct">${(item.prob * 100).toFixed(1)}%</span>
+      <span class="logit-raw">${item.logit >= 0 ? '+' : ''}${item.logit.toFixed(3)}</span>
+    `;
+    logitList.appendChild(row);
+  });
+
+  /* Animate bars after render */
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.bar-fill').forEach(bar => {
+      bar.style.width = bar.dataset.pct + '%';
+    });
+  });
+
+  resultCard.classList.add('visible');
+}
+
+/* ── Export ─────────────────────────────────────────────────── */
+exportBtn.addEventListener('click', () => {
+  if (!lastResult) return;
+  const blob = new Blob([JSON.stringify(lastResult, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `classification_${lastResult.prediction.replace(/\W+/g, '_')}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+/* ── Reset ──────────────────────────────────────────────────── */
+resetBtn.addEventListener('click', resetAll);
+
+function resetAll() {
+  selectedFile = null;
+  lastResult   = null;
+  fileInput.value = '';
+  fileSelected.classList.remove('visible');
+  runBtn.disabled = true;
+  resultCard.classList.remove('visible');
+  progressWrap.classList.remove('visible');
+  logitList.innerHTML = '';
+  hideError();
+}
+
+/* ── Error helpers ──────────────────────────────────────────── */
+function showError(msg) {
+  errorMsg.textContent = msg;
+  errorBox.classList.add('visible');
+}
+function hideError() {
+  errorBox.classList.remove('visible');
+}
+</script>
+</body>
+</html>
